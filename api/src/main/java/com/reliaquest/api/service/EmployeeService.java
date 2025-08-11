@@ -20,47 +20,90 @@ public class EmployeeService {
         this.restTemplate = restTemplate;
     }
 
+    /**
+     * Fetches all employees from the remote service.
+     * Returns an empty list if the API call fails or returns nothing.
+     */
     public List<Employee> getAllEmployees() {
-        Employee[] employees = restTemplate.getForObject(BASE_URL, Employee[].class);
-        if (employees == null) return Collections.emptyList();
-        return Arrays.asList(employees);
+        Employee[] employeeArray = restTemplate.getForObject(BASE_URL, Employee[].class);
+
+        if (employeeArray == null) {
+            // Fail gracefully — don't throw, just return empty
+            return Collections.emptyList();
+        }
+
+        return Arrays.asList(employeeArray);
     }
 
+    /**
+     * Finds employees whose names contain the given search string (case-insensitive).
+     * If no employees are found, returns an empty list.
+     */
     public List<Employee> getEmployeesByNameSearch(String searchString) {
-        Employee[] employees = restTemplate.getForObject(BASE_URL, Employee[].class);
-        if (employees == null) return Collections.emptyList();
-        return Arrays.stream(employees)
-                .filter(e -> e.getName() != null && e.getName().toLowerCase().contains(searchString.toLowerCase()))
+        Employee[] employeeArray = restTemplate.getForObject(BASE_URL, Employee[].class);
+
+        if (employeeArray == null) {
+            return Collections.emptyList();
+        }
+
+        String lowerSearch = searchString.toLowerCase(Locale.ROOT);
+
+        return Arrays.stream(employeeArray)
+                .filter(e -> e.getName() != null && e.getName().toLowerCase(Locale.ROOT).contains(lowerSearch))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a single employee by ID.
+     * Returns null if the employee is not found.
+     */
     public Employee getEmployeeById(String id) {
         return restTemplate.getForObject(BASE_URL + "/" + id, Employee.class);
     }
 
+    /**
+     * Calculates the highest salary among all employees.
+     */
     public Integer getHighestSalaryOfEmployees() {
-        Employee[] employees = restTemplate.getForObject(BASE_URL, Employee[].class);
-        if (employees == null || employees.length == 0) return 0;
-        return Arrays.stream(employees)
-                .mapToInt(Employee::getSalary)
+        Employee[] employeeArray = restTemplate.getForObject(BASE_URL, Employee[].class);
+
+        if (employeeArray == null || employeeArray.length == 0) {
+            return 0;
+        }
+        return Arrays.stream(employeeArray)
+                .mapToInt(Employee::getSalary) 
                 .max()
                 .orElse(0);
     }
 
+    /**
+     * Gets the names of the top 10 highest-paid employees.
+     */
     public List<String> getTopTenHighestEarningEmployeeNames() {
-        Employee[] employees = restTemplate.getForObject(BASE_URL, Employee[].class);
-        if (employees == null) return Collections.emptyList();
-        return Arrays.stream(employees)
-                .sorted((e1, e2) -> Integer.compare(e2.getSalary(), e1.getSalary()))
+        Employee[] employeeArray = restTemplate.getForObject(BASE_URL, Employee[].class);
+
+        if (employeeArray == null) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.stream(employeeArray)
+                .sorted(Comparator.comparingInt(Employee::getSalary).reversed())
                 .limit(10)
                 .map(Employee::getName)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Sends a request to create a new employee.
+     */
     public Employee createEmployee(CreateEmployeeInput input) {
         return restTemplate.postForObject(BASE_URL, input, Employee.class);
     }
 
+    /**
+     * Deletes an employee by ID.
+     */
     public void deleteEmployeeById(String id) {
         restTemplate.delete(BASE_URL + "/" + id);
     }
